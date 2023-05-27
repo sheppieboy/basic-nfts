@@ -11,13 +11,16 @@ describe('BasicNFT contract', function () {
     return { basicNFT, deployer };
   };
 
-  describe('Constructor', async () => {
-    it('initializes the NFT contract correctly', async () => {
+  /**
+   * Constructor tests
+   */
+
+  describe('Constructor', () => {
+    it('Initializes the NFT contract correctly', async () => {
       const { basicNFT } = await loadFixture(deployNFTFixture);
       const name = await basicNFT.name();
       const symbol = await basicNFT.symbol();
-      const tokenCounter = await basicNFT.tokenCounter();
-      console.log(`The contract name is: ${name} and the symbol is ${symbol}`);
+      const tokenCounter = await basicNFT.getTokenCounter();
       assert.equal(name, 'Dogie');
       assert.equal(symbol, 'DOG');
       assert.equal(tokenCounter.toString(), '0');
@@ -25,15 +28,34 @@ describe('BasicNFT contract', function () {
   });
 
   /**
-   * Constructor tests
+   * mint function
    */
 
-  /**
-   * Token counter tests
-   */
+  describe('Mint NFT', () => {
+    it('Updates the token count after mint ', async () => {
+      const { basicNFT } = await loadFixture(deployNFTFixture);
+      await basicNFT.mintNFT();
+      const count = basicNFT.getTokenCounter();
+      assert(count.toString(), '1');
+    });
+    it('The function tokenURI works as specificied', async () => {
+      const { basicNFT } = await loadFixture(deployNFTFixture);
+      const tokenURI = await basicNFT.tokenURI(0);
+      assert.equal(tokenURI, await basicNFT.TOKEN_URI());
+    });
 
-  /** */
-  //token counter
-  //token uri
-  //mintNFT
+    it('Show the correct balance and owner of an NFT', async () => {
+      const { basicNFT, deployer } = await loadFixture(deployNFTFixture);
+      //mint NFT
+      await basicNFT.mintNFT();
+
+      //owner should be the deployer
+      const owner = await basicNFT.ownerOf('0'); //takes token Id which is 0
+      assert.equal(deployer.address, owner);
+
+      //balance should be 1
+      const deployerBalance = await basicNFT.balanceOf(deployer.address);
+      assert.equal(deployerBalance.toString(), '1');
+    });
+  });
 });
