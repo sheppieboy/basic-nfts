@@ -3,11 +3,11 @@ pragma solidity ^0.8.18;
 
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 
 error RandomIpfsNFT_RangeOutOfBounds();
 
-contract RandomIpfsNFT is VRFConsumerBaseV2, ERC721 {
+contract RandomIpfsNFT is VRFConsumerBaseV2, ERC721URIStorage {
     //Type Declaration
     enum Breed {
         PUG,
@@ -35,17 +35,20 @@ contract RandomIpfsNFT is VRFConsumerBaseV2, ERC721 {
     //NFT variables
     uint256 private s_tokenCounter;
     uint256 internal constant MAX_CHANCE_VALUE = 100;
+    string[] internal s_dogTokenURIs;
 
     constructor(
         address vrfCoordinatorV2,
         uint64 subscriptionId,
         bytes32 gasLane,
-        uint32 callbackGasLimit
+        uint32 callbackGasLimit,
+        string[3] memory dogTokenURIs
     ) VRFConsumerBaseV2(vrfCoordinatorV2) ERC721("Rando, IPFS NFT", "RIN") {
         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
         i_subscriptionId = subscriptionId;
         i_gasLane = gasLane;
         i_callbalcGasLimit = callbackGasLimit;
+        s_dogTokenURIs = dogTokenURIs;
     }
 
     function requestNFT() public returns (uint256 requestId) {
@@ -65,13 +68,14 @@ contract RandomIpfsNFT is VRFConsumerBaseV2, ERC721 {
     ) internal override {
         address dogOwner = s_requestIdSender[requestId];
         uint256 newTokenId = s_tokenCounter;
-        _safeMint(dogOwner, newTokenId);
         uint256 moddedRng = randomWords[0] % MAX_CHANCE_VALUE;
         //0-99 num
         //7-> PUG
         //88 => St.Bernard
         //45 => St.Bernanded
-        getBreedFromModdedRng(moddedRng);
+        Breed dogBreed = getBreedFromModdedRng(moddedRng);
+        _safeMint(dogOwner, newTokenId);
+        _setTokenURI(newTokenId, s_dogTokenURIs[uint256(dogBreed)]);
     }
 
     function getBreedFromModdedRng(
