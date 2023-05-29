@@ -17,8 +17,11 @@ contract RandomIpfsNFT is VRFConsumerBaseV2 {
     uint64 private immutable i_subscriptionId;
     bytes32 private immutable i_gasLane;
     uint32 private immutable i_callbalcGasLimit;
-    uint32 private constant REQUEST_CONFIRMATIONS = 3;
-    uint32 private constant NUm_WORDS = 1;
+    uint16 private constant REQUEST_CONFIRMATIONS = 3;
+    uint32 private constant NUM_WORDS = 1;
+
+    //VRF helpers
+    mapping(uint256 => address) public s_requestIdSender;
 
     constructor(
         address vrfCoordinatorV2,
@@ -32,12 +35,23 @@ contract RandomIpfsNFT is VRFConsumerBaseV2 {
         i_callbalcGasLimit = callbackGasLimit;
     }
 
-    function requestNFT() public {}
+    function requestNFT() public returns (uint256 requestId) {
+        requestId = i_vrfCoordinator.requestRandomWords(
+            i_gasLane,
+            i_subscriptionId,
+            REQUEST_CONFIRMATIONS,
+            i_callbalcGasLimit,
+            NUM_WORDS
+        );
+        s_requestIdSender[requestId] = msg.sender;
+    }
 
     function fulfillRandomWords(
         uint256 requestId,
         uint256[] memory randomWords
-    ) internal override {}
+    ) internal override {
+        address dogOwner = s_requestIdSender[requestId];
+    }
 
     function tokenURI(uint256) public {}
 }
