@@ -4,11 +4,13 @@ pragma solidity ^0.8.18;
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 error RandomIpfsNFT_RangeOutOfBounds();
 error RandomIpfsNFT_NeedMoreEthSent();
+error RandomIpfsNFT_TransferFailed();
 
-contract RandomIpfsNFT is VRFConsumerBaseV2, ERC721URIStorage {
+contract RandomIpfsNFT is VRFConsumerBaseV2, ERC721URIStorage, Ownable {
     //Type Declaration
     enum Breed {
         PUG,
@@ -100,6 +102,14 @@ contract RandomIpfsNFT is VRFConsumerBaseV2, ERC721URIStorage {
             cumulativeSum += chanceArray[i];
         }
         revert RandomIpfsNFT_RangeOutOfBounds();
+    }
+
+    function withdraw() public onlyOwner {
+        uint256 amount = address(this).balance;
+        (bool success, ) = payable(msg.sender).call{value: amount}("");
+        if (!success) {
+            revert RandomIpfsNFT_TransferFailed();
+        }
     }
 
     function getChanceArray() public pure returns (uint256[3] memory) {
