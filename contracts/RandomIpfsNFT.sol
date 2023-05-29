@@ -6,6 +6,7 @@ import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 
 error RandomIpfsNFT_RangeOutOfBounds();
+error RandomIpfsNFT_NeedMoreEthSent();
 
 contract RandomIpfsNFT is VRFConsumerBaseV2, ERC721URIStorage {
     //Type Declaration
@@ -19,7 +20,7 @@ contract RandomIpfsNFT is VRFConsumerBaseV2, ERC721URIStorage {
     // Pug, Shiba Inu, St.Bernard
     //different rarity for each dog breed
 
-    //users hjave to pay to mint an NFT
+    //users have to pay to mint an NFT
     //the owner of the contract cna withdraw the ETH
 
     VRFCoordinatorV2Interface private immutable i_vrfCoordinator;
@@ -36,22 +37,28 @@ contract RandomIpfsNFT is VRFConsumerBaseV2, ERC721URIStorage {
     uint256 private s_tokenCounter;
     uint256 internal constant MAX_CHANCE_VALUE = 100;
     string[] internal s_dogTokenURIs;
+    uint256 internal immutable i_mintFee;
 
     constructor(
         address vrfCoordinatorV2,
         uint64 subscriptionId,
         bytes32 gasLane,
         uint32 callbackGasLimit,
-        string[3] memory dogTokenURIs
+        string[3] memory dogTokenURIs,
+        uint256 mintFee
     ) VRFConsumerBaseV2(vrfCoordinatorV2) ERC721("Rando, IPFS NFT", "RIN") {
         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
         i_subscriptionId = subscriptionId;
         i_gasLane = gasLane;
         i_callbalcGasLimit = callbackGasLimit;
         s_dogTokenURIs = dogTokenURIs;
+        i_mintFee = mintFee;
     }
 
-    function requestNFT() public returns (uint256 requestId) {
+    function requestNFT() public payable returns (uint256 requestId) {
+        if (msg.value < i_mintFee) {
+            revert RandomIpfsNFT_NeedMoreEthSent();
+        }
         requestId = i_vrfCoordinator.requestRandomWords(
             i_gasLane,
             i_subscriptionId,
